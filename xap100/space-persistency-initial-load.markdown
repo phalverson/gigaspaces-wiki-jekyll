@@ -8,16 +8,16 @@ weight: 500
 
 {% summary  %} {% endsummary %}
 
-The XAP Data-Grid includes special interceptor that allow users to pre-load the Data-Grid with data before it is available for clients access. This interceptor called **Initial Load** and has a default implementation that is using the [Hibernate Space Persistency](./hibernate-space-persistency.html) implementation to load data from a database directly into the Data-Grid instances.
+The XAP Data-Grid includes a special interceptor that allows users to pre-load the Data-Grid with data before it is available for client access. This interceptor is called **Initial Load** and has a default implementation that uses the [Hibernate Space Persistency](./hibernate-space-persistency.html) implementation to load data from a database directly into Data-Grid instances.
 
 ![eds_initial_load.jpg](/attachment_files/eds_initial_load.jpg)
 
-To enable the initial load activity a `SpaceDataSource` should be specified. We distinguish between two modes of operation - if `SpaceSynchronizationEndpoint` is specified the mode is 'read-write', otherwise 'read-only'.
+To enable the initial load activity, a `SpaceDataSource` should be specified. We distinguish between two modes of operation - if `SpaceSynchronizationEndpoint` is specified the mode is 'read-write', otherwise it is 'read-only'.
 
-- **read-only** - Space will be loading data from the persistency layer once started. It will access the persistency layer in case of a cache miss (only when running in LRU cache policy mode).
-- **read-write** - Space will be loading data from the persistency layer once started. It will write changes within the space back into the persistency layer in synchronous manner. For a-synchronous mode, the replication to the Mirror should be enabled and `SpaceSynchronizationEndpoint` should not be specified for the space but only for the mirror. The Mirror will be responsible to write the changes into the persistency layer.
+- **read-only** - Space will load data from the persistency layer once started. It will access the persistency layer in case of a cache miss (if running in LRU cache policy mode).
+- **read-write** - Space will load data from the persistency layer once started. It will write changes within the space back into the persistency layer in synchronous manner. For asynchronous mode, the replication to the Mirror should be enabled and `SpaceSynchronizationEndpoint` should not be specified for the space but only for the mirror. The Mirror will be responsible for writing the changes into the persistency layer.
 
-Here is an example for a space configuration that performs only initial load from the database without writing back any changes into the database (replication to the Mirror service is not enabled with this example):
+Here is an example of a space configuration that performs only initial load from the database without writing back any changes into the database (replication to the Mirror service is not enabled with this example):
 
 {% highlight xml %}
 <os-core:embedded-space id="space" name="space" schema="persistent" space-data-source="hibernateSpaceDataSource">
@@ -37,12 +37,12 @@ Here is an example for a space configuration that performs only initial load fro
 {% endhighlight %}
 
 {% info %}
-The Initial Load is supported with the `partitioned-sync2backup` cluster schema. If you would like to pre-load a clustered space using the Initial-Load without running backups you can use the `partitioned-sync2backup` and have ZERO as the amount of backups.
+Initial Load is supported with the `partitioned-sync2backup` cluster schema. If you would like to pre-load a clustered space using the Initial-Load without running backups, you can use the `partitioned-sync2backup` and specify ZERO as the amount of backups.
 {% endinfo %}
 
 # Controlling the Initial Load
 
-By default all the entries are loaded from the database into the space, but sometimes only a subset of the data is relevant for the space. This section explains how to control which data is loaded.
+By default all the entries are loaded from the database into the space, but sometimes only a subset of the data is relevant. This section explains how to control which data is loaded.
 
 ## Initial Load Entries
 
@@ -84,7 +84,7 @@ public class MyClass {
 }
 {% endhighlight %}
 
-Alternatively, for users which prefer to separate the initial load semantics from the domain class, the `SpaceInitialLoadQuery` can be specified on a method in a different class. In that case the name of the domain class must be provided within the annotation. For example:
+Alternatively, for users who prefer to separate the initial load semantics from the domain class, the `SpaceInitialLoadQuery` can be specified on a method in a different class. In that case the name of the domain class must be provided within the annotation. For example:
 
 {% highlight java %}
 public class MyInitialLoadBean {
@@ -100,7 +100,7 @@ public class MyInitialLoadBean {
 }
 {% endhighlight %}
 
-The system needs to be configured with a set of one ore more base packages which will be scanned for methods annotated with `SpaceInitialLoadQuery` and instantiate them to retrieve the queries. For example:
+The system must be configured with a set of one or more base packages that will be scanned for methods annotated with `SpaceInitialLoadQuery` and instantiated to retrieve the queries. For example:
 
 {% highlight xml %}
 <bean id="hibernateSpaceDataSource" class="org.openspaces.persistency.hibernate.DefaultHibernateSpaceDataSourceFactoryBean">
@@ -116,7 +116,7 @@ The system needs to be configured with a set of one ore more base packages which
 
 ## Overriding the `initialDataLoad` method
 
-To implement your own Initial Load when using the Hibernate `SpaceDataSource` you can override the `initialDataLoad` method to construct one or more `DefaultScrollableDataIterator`. For example:
+To implement your own Initial Load when using the Hibernate `SpaceDataSource`, you can override the `initialDataLoad` method to construct one or more `DefaultScrollableDataIterator` instances. For example:
 
 {% highlight java %}
 public class MySpaceDataSource extends DefaultHibernateSpaceDataSource {
@@ -135,9 +135,9 @@ public class MySpaceDataSource extends DefaultHibernateSpaceDataSource {
 
 # Partitioned Cluster
 
-When using a partitioned cluster, each space partition stores a subset of the data, based on the entry routing property hash code value. Each partition performs its own initial load process and checks each loaded entry to verify it belongs to that partition - entries which do not belong are discarded.
+When using a partitioned cluster, each space partition stores a subset of the data, based on the entry routing property hash code value. Each partition performs its own initial load process and checks each loaded entry to verify that it belongs to that partition. Entries that do not belong are discarded.
 
-While this process protects the partition from storing irrelevant data, its performance is naive - imagine a cluster with 10 partitions which are evenly distributed: each partition will load the entire database and discard 90% of it, i.e. take roughly x10 times longer to load than actually needed. 
+While this process protects the partition from storing irrelevant data, its performance is naive. Imagine a cluster with 10 partitions that are evenly distributed. Each partition will load the entire database and discard 90% of it, taking roughly 10 times longer to load than actually needed. 
 
 Fortunately, the system has a built-in mechanism which attempts to load only entries relevant to the partition when possible. When a space entry has a routing property with a numeric type mapped to a column in the database, the system automatically generates a custom initial load query to load only entries relevant for the partition based on the routing property. This mechanism can be disabled using the `augmentInitialLoadEntries` property:
 
@@ -154,7 +154,7 @@ This mechanism only works for entries whose routing property type is numeric.
 
 ## Custom Initial Load Queries
 
-When an entry is configured with an explicit custom initial load query using `@SpaceInitialLoadQuery` as described above, the automatic augmentation is skipped. You can augment the query manually to match only entries for a specific partition:
+When an entry is configured with an explicit custom initial load query using `@SpaceInitialLoadQuery`, as described above, the automatic augmentation is skipped. You can augment the query manually to match only entries for a specific partition:
 
 {% highlight java %}
 @SpaceClass
@@ -177,13 +177,13 @@ public class MyClass {
 }
 {% endhighlight %}
 
-Note that the method annotated with `@SpaceInitialLoadQuery` can receive a `ClusterInfo`, which is then used to retrieve the current partition id and total number of partitions to perform the required calculation.
+Note that the method annotated with `@SpaceInitialLoadQuery` is supplied with a `ClusterInfo` instance, which can be used to retrieve the current partition id and total number of partitions to perform the required calculation.
 
-In addition, if you choose to override the `initialDataLoad` method, note that the `SpaceDataSource` implements `ClusterInfoAware`, therefore you have access to the protected `ClusterInfo` field.
+In addition, if you choose to override the `initialDataLoad` method, note that `SpaceDataSource` implements `ClusterInfoAware`, therefore you have access to the protected `ClusterInfo` field.
 
 # Multi-Parallel Initial Load
 
-The `ConcurrentMultiDataIterator` can be used for Multi-Parallel load. This will allow multiple threads to load data into each space primary partition. With the example below 4 threads will be used to load data into the space primary partition , each will handle a different `MyDataIterator`:
+The `ConcurrentMultiDataIterator` can be used for Multi-Parallel load. This will allow multiple threads to load data into each space primary partition. With the example below, 4 threads will be used to load data into the space primary partition. Each will handle a different `MyDataIterator`:
 
 {% highlight java %}
 public class MySpaceDataSource extends SpaceDataSource{
